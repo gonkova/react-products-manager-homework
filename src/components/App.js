@@ -1,67 +1,145 @@
-import React, { useState } from 'react';
-import "./App.css";
+import React, { useState, useEffect } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import Product from './Product';
 
 export default function App() {
-  const [players, setPlayers] = useState([
-    { name: 'Иван', score: 0 },
-    { name: 'Мария', score: 0 },
-    { name: 'Павел', score: 0 }
-  ]);
+  const [products, setProducts] = useState([]);
+  const [currentId, setCurrentId] = useState(1);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    title: '',
+    price: '',
+    quantity: '',
+    description: ''
+  });
+  const [editProduct, setEditProduct] = useState(null);
 
-  function increaseScore(name) {
-    const newPlayers = players.map(player =>
-      player.name == name ? { ...player, score: player.score + 1 } : player);
-    setPlayers(newPlayers);
+  useEffect(() => {
+    if (products.length == 0) {
+      setCurrentId(1);
+    }
+  }, [products]);
+
+  function handleInputChange(event) {
+    const { name, value } = event.target;
+    if (editProduct) {
+      setEditProduct(prev => ({ ...prev, [name]: value }));
+    }
+    else {
+      setNewProduct(prev => ({ ...prev, [name]: value }));
+    }
   }
 
-  function decreaseScore(name) {
-    const newPlayers = players.map(player =>
-      player.name == name ? { ...player, score: player.score - 1 } : player);
-    setPlayers(newPlayers);
+  function startEdit(product) {
+    setEditProduct(product);
+    setShowAddForm(true);
   }
 
-  const totalScore = players.reduce((acc, player) => acc + player.score, 0);
+  function completeEdit() {
+    setProducts(prevProducts => prevProducts.map(p =>
+      p.id == editProduct.id ? editProduct : p));
+    setEditProduct(null);
+    setShowAddForm(false);
+  }
 
-  function renderTr() {
-    return players.map(player =>
-      <tr>
-        <td>{player.name}</td>
-        <td>{player.score}</td>
-        <td>
-          <button style={{ background: '#21813e' }}
-            onClick={() => increaseScore(player.name)}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
-              <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-            </svg>
-          </button>
-          <button style={{ background: 'red' }}
-            onClick={() => decreaseScore(player.name)}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-dash" viewBox="0 0 16 16">
-              <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z" />
-            </svg>
-          </button>
-        </td>
-      </tr>
-    )
+  function addProduct() {
+    const productToAdd = { ...newProduct, id: currentId };
+    setProducts([...products, productToAdd]);
+    setCurrentId(currentId + 1);
+    setShowAddForm(false);
+    setNewProduct({ title: '', price: '', quantity: '', description: '' });
+  }
+
+  function deleteProduct(productId) {
+    const remainingProducts = products.filter(product => product.id !== productId);
+    setProducts(remainingProducts);
   }
 
   return (
-    <div className="App">
-      <table>
-        <thead>
-          <tr>
-            <td>Име</td>
-            <td>Резултат</td>
-            <td>Действия</td>
-          </tr>
-        </thead>
-        <tbody>
-          {renderTr()}
-        </tbody>
-      </table>
-      <div className='total'>
-        <h3>Общ резултат: {totalScore}</h3>
+    <div className='container-fluid'>
+      <div className='container mt-3'>
+        <button onClick={() => setShowAddForm(true)} className='btn btn-primary'>
+          Добави продукт
+        </button>
+        {showAddForm && (
+          <form
+            className='row mt-3'
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editProduct) {
+                completeEdit();
+              }
+              else {
+                addProduct();
+              }
+            }}
+          >
+            <input
+              type='text'
+              name='title'
+              placeholder='Име на продукта'
+              value={editProduct ? editProduct.title : newProduct.title}
+              onChange={handleInputChange}
+              className="mb-3"
+            />
+            <input
+              type='text'
+              name='price'
+              placeholder='Цена'
+              value={editProduct ? editProduct.price : newProduct.price}
+              onChange={handleInputChange}
+              className="mb-3"
+            />
+            <input
+              type='text'
+              name='quantity'
+              placeholder='Количество'
+              value={editProduct ? editProduct.quantity : newProduct.quantity}
+              onChange={handleInputChange}
+              className="mb-3"
+            />
+            <textarea
+              name='description'
+              placeholder='Описание'
+              value={editProduct ? editProduct.description : newProduct.description}
+              onChange={handleInputChange}
+              className="mb-3"
+            />
+            <button type="submit" className='btn btn-primary'
+            >Запази продукт</button>
+          </form>
+        )}
+        <div className='row'>
+          <div className="table-responsive">
+            {products.length > 0 && (
+              <table className="table table-bordered table-hover mt-3">
+                <thead >
+                  <tr>
+                    <th>ИД</th>
+                    <th>Име на продукта</th>
+                    <th>Цена</th>
+                    <th>Количество</th>
+                    <th>Описание</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(product => (
+                    <Product
+                      key={product.id}
+                      product={product}
+                      deleteProduct={deleteProduct}
+                      startEdit={startEdit}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
+
